@@ -1,6 +1,10 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 #
+# - Before you can run hooks, you need to have the pre-commit package manager installed.
+#   pip install pre-commit
+# - Enable it as git pre-commit hook:
+#   pre-commit install
 
 fail_fast: false
 default_stages: [commit, push]
@@ -27,11 +31,6 @@ repos:
     -   id: mixed-line-ending
         args: ['--fix=lf']
     -   id: trailing-whitespace
-
--   repo: https://github.com/asottile/reorder-python-imports
-    rev: v3.12.0
-    hooks:
-    -   id: reorder-python-imports
 
 -   repo: local
     hooks:
