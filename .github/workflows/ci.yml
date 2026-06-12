@@ -1,4 +1,4 @@
-name: build
+name: CI
 
 on: [push, pull_request]
 
@@ -19,26 +19,8 @@ jobs:
     strategy:
       matrix:
         arch: [x86]
-        compiler: [llvm-12, llvm-13, llvm-14]
-
-        include:
-          - arch: x86
-            compiler: gcc-9
-          - arch: x86
-            compiler: gcc-10
-          - arch: x86
-            compiler: gcc-11
-          - arch: x86
-            compiler: gcc-12
-
-          - arch: x86
-            compiler: clang-12
-          - arch: x86
-            compiler: clang-13
-          - arch: x86
-            compiler: clang-14
-
-    runs-on: ubuntu-22.04
+        compiler: [llvm-18, llvm-19, gcc-12, gcc-13, gcc-14]
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Install
@@ -46,12 +28,12 @@ jobs:
         c=${{matrix.compiler}}
         v=${c##llvm-}
         case $c in
-            # Need all {llvm,clang,lld}-$v packages
+            # Need all {clang,lld}-$v packages
             llvm-*) EXTRA="clang-${v} lld-${v}" ;;
         esac
 
         sudo apt-get update -q
-        sudo apt-get install -y build-essential python3 ${{matrix.compiler}} ${EXTRA}
+        sudo apt-get install -y ${{matrix.compiler}} ${EXTRA}
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -65,3 +47,9 @@ jobs:
         esac
 
         make -j`nproc` ARCH=${{matrix.arch}} $CROSS $COMP
+
+    - name: scan-build
+      if: matrix.compiler == 'llvm-19'
+      run: |
+        sudo apt-get install -y clang-tools-19
+        scan-build-19 --status-bugs -analyze-headers make -j`nproc`
