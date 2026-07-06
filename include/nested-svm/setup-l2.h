@@ -16,7 +16,11 @@ struct svm_l2_config {
     uint64_t efer;
 };
 
+/* The VMCB for L2. */
 extern struct vmcb l2_vmcb __page_aligned_bss;
+
+/* The VMCB's Virtual Interrupt Control field for easy access in tests. */
+extern struct v_intr_ctrl_fields *intr_ctrl;
 
 /* Backing store for the VMRUN host-save area (MSR_VM_HSAVE_PA). */
 extern uint8_t hsave[PAGE_SIZE] __page_aligned_bss;
@@ -32,6 +36,10 @@ void svm_l1_finish_vmrun(void);
 
 /* Build a minimal long-mode L2 VMCB that reuses the current L1 environment. */
 void svm_l2_build_vmcb(struct vmcb *vmcb, const struct svm_l2_config *cfg);
+
+/* Build an L2 IDT with a single interrupt gate for the supplied vector. */
+void setup_l2_idt(struct vmcb *vmcb, unsigned int vector,
+                  void (*handler)(void));
 
 /* Enter an L2 guest via the shared VMLOAD/VMRUN/VMSAVE trampoline. */
 void svm_vmrun(unsigned long l2_vmcb_pa);

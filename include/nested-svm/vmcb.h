@@ -1,6 +1,6 @@
 /* Shared minimal VMCB definitions for nested-SVM tests. */
-#ifndef XTF_TESTS_NESTED_SVM_VMCB_H
-#define XTF_TESTS_NESTED_SVM_VMCB_H
+#ifndef XTF_NESTED_SVM_VMCB_H
+#define XTF_NESTED_SVM_VMCB_H
 
 #include <xtf/types.h>
 
@@ -10,6 +10,29 @@ struct vmcb_seg {
     uint32_t limit;
     uint64_t base;
 };
+
+/* VMCB 0x060: Virtual Interrupt Control to inject virtual interrupts */
+typedef union {
+    uint64_t bytes;
+    struct v_intr_ctrl_fields {
+        uint64_t v_tpr          : 8;  /* 0:7   - Virtual Task Priority Register */
+        uint64_t irq_is_pending          : 1;  /* 8     - Virtual Interrupt Request */
+        uint64_t vGIF          : 1;  /* 9     - Virtual Global Interrupt Flag */
+        uint64_t reserved_1     : 1;  /* 10    - Reserved */
+        uint64_t nmi_is_pending   : 1;  /* 11    - Virtual NMI Pending */
+        uint64_t nmi_is_blocking  : 1;  /* 12    - Virtual NMI Blocking */
+        uint64_t reserved_2     : 3;  /* 13:15 - Reserved */
+        uint64_t prio    : 4;  /* 16:19 - Virtual Interrupt Priority */
+        uint64_t v_ign_tpr      : 1;  /* 20    - Virtual Ignore TPR */
+        uint64_t reserved_3     : 3;  /* 21:23 - Reserved */
+        uint64_t v_intr_masking : 1;  /* 24    - Virtual Interrupt Masking */
+        uint64_t vGIF_is_enabled   : 1;  /* 25    - Virtual GIF Enable */
+        uint64_t nmi_is_enabled    : 1;  /* 26    - Virtual NMI Enable */
+        uint64_t reserved_4     : 5;  /* 27:31 - Reserved (Bit 27 is AVIC_ENABLE on newer CPUs) */
+        uint64_t vector  : 8;  /* 32:39 - Virtual Interrupt Vector */
+        uint64_t reserved_5     : 24; /* 40:63 - Reserved */
+    } __attribute__((packed)) fields;
+} v_intr_ctrl_t;
 
 struct vmcb {
     uint16_t intercept_read_cr;
@@ -29,7 +52,8 @@ struct vmcb {
     uint32_t asid;
     uint8_t  tlb_control;
     uint8_t  _pad_05d[3];
-    uint64_t vintr;
+    /* 0x060: Virtual Interrupt Control to inject virtual interrupts */
+    v_intr_ctrl_t v_intr_ctrl;
     uint64_t int_state;
     uint64_t exitcode;
     uint64_t exitinfo1;
@@ -37,6 +61,7 @@ struct vmcb {
     uint64_t exit_int_info;
     uint64_t np_enable;
     uint8_t  _pad_098[0x0a8 - 0x098];
+    /* 0x0a8: Event Injection */
     uint64_t event_inj;
     uint64_t h_cr3;
     uint8_t  _pad_0b8[0x400 - 0x0b8];
@@ -75,6 +100,7 @@ struct vmcb {
 VMCB_CHECK(intercept_insns_vec3, 0x00c);
 VMCB_CHECK(intercept_insns_vec4, 0x010);
 VMCB_CHECK(asid,                 0x058);
+VMCB_CHECK(v_intr_ctrl,          0x060);
 VMCB_CHECK(exitcode,             0x070);
 VMCB_CHECK(es,                   0x400);
 VMCB_CHECK(gdtr,                 0x460);
@@ -102,14 +128,53 @@ _Static_assert(sizeof(struct vmcb) == 0x1000, "VMCB size != 4 KiB");
 #define VMEXIT_VMRUN                    0x080
 #define VMEXIT_VMMCALL                  0x081
 
-#endif /* XTF_TESTS_NESTED_SVM_VMCB_H */
+/* Get the vmexit reason */
+static const char __used *vmexit_reason(uint64_t exitcode)
+{
+    switch (exitcode) {
+    case VMEXIT_HLT:      return "HLT";
+    case VMEXIT_SHUTDOWN: return "SHUTDOWN";
+    case VMEXIT_VMRUN:    return "VMRUN";
+    case VMEXIT_VMMCALL:  return "VMMCALL";
+    default:              return "UNKNOWN";
+    }
+}
 
-/*
- * Local variables:
- * mode: C
- * c-file-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
- */
+/* Function to print all bits of v_intr_ctrl_t */
+static inline void print_v_intr_ctrl(const char *file, int line,
+                                     const struct vmcb *vmcb,
+                                     const char *prefix)
+{
+    struct v_intr_ctrl_fields ctrl = vmcb->v_intr_ctrl.fields;
+
+    printk("%s:%d: rax:%lx IRQ-ctrl", file, line, vmcb->rax);
+    if (prefix)
+        printk(" %s", prefix);
+    printk(":");
+    /* Print a list of the bits which are set: */
+    if (ctrl.prio)
+        printk(" prio:%u", ctrl.prio);
+    if (ctrl.vector)
+        printk(" vec:%x", ctrl.vector);
+    if (ctrl.vGIF_is_enabled)
+        printk(" vGIF:%u", ctrl.vGIF);
+    if (ctrl.irq_is_pending)
+        printk(" IRQ:pending");
+    if (ctrl.nmi_is_enabled)
+        printk(" NMI:enabled");
+    if (ctrl.nmi_is_pending)
+        printk(" NMI:pending");
+    if (ctrl.nmi_is_blocking)
+        printk(" NMI:blocking");
+
+    if (ctrl.v_tpr)
+        printk(" tpr=%u", ctrl.v_tpr);
+    if (ctrl.v_ign_tpr)
+        printk(" ign_tpr");
+    if (ctrl.v_intr_masking)
+        printk(" intr_masking");
+
+    printk("\n");
+}
+
+#endif /* XTF_NESTED_SVM_VMCB_H */
