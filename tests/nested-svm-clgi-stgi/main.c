@@ -27,32 +27,52 @@ const char test_title[] = "Nested SVM CLGI/STGI Smoke Test";
  */
 static void __used l2_isr_0x30(void)
 {
-    /* Decrement rax before exit to L1 to indicate interrupt was taken */
+    /* Decrement rax before exiting to indicate that an interrupt was taken */
     asm volatile ("dec %rax;hlt");
 }
 
+/**
+ * Check if the ISR for 0x30 was called by checking if %rax was decremented.
+ * L2 should have decremented %rax from 2 to 1 if the interrupt was taken.
+ */
 static bool l2_isr_0x30_called(void)
 {
     return l2_vmcb.rax == 1; /* L2 should have decremented %rax from 2 to 1 */
 }
 
 /**
- * Run a minimal L2 payload. If an interrupt is pending,
- * it will be taken after the instruction following STI.
+ * L2 payload with STI to take pending interrupts. In case of a pending
+ * interrupt, it will be taken after the instruction following STI.
+ * If interrupts are disabled, the interrupt will not be taken, inc %rax
+ * will increment %rax to signal that exit L2 with HLT.
  */
-static void __used l2_entry(void)
+static void __used l2_sti_nop_inc_rax_hlt(void)
 {
     /* STI to allow interrupts, then increment %rax */
     asm volatile ("sti\n"
+                  "nop\n" /* Ensures STI takes effect before inc %rax */
+                  "inc %rax\n" /* Signal that no IRQ or ISR returned  */
+                  "hlt"); /* Exit L2 */
+}
+
+/**
+ * L2 payload with CLGI to block interrupts. In case of a pending
+ * interrupt, it will not be taken after the instruction following STI.
+ */
+static void __used l2_clgi_sti_nop_inc_rax_hlt(void)
+{
+    /* STI to allow interrupts, then increment %rax */
+    asm volatile ("clgi\n" /* Disable interrupts globally */
+                  "sti\n" /* Enable interrupts */
                   /* Dummy insn ensures STI takes effect before inc %rax */
-                  "nop\n" 
+                  "nop\n"
                   "inc %rax\n"
                   "hlt");
 }
 
 static bool run_l2(const char *file, int line)
 {
-    l2_vmcb.rip = _u(l2_entry);
+    l2_vmcb.rip = _u(l2_sti_nop_inc_rax_hlt);
     l2_vmcb.rax = 2; /* Starting value for L2 to inc/decrement before HLT */
     intr_ctrl->irq_is_pending = 1; /* vIRQ request enable bit */
     print_v_intr_ctrl(file, line, &l2_vmcb, "pre-VMRUN ");
@@ -95,7 +115,7 @@ void test_main(void)
     intr_ctrl->vector = 0x30; /* Use vector 0x30 when injecting interrupts */
 
     /* Set the L2 entry point to this test's l2_entry function. */
-    l2_vmcb.rip = _u(l2_entry);
+    l2_vmcb.rip = _u(l2_sti_nop_inc_rax_hlt);
 
     /* Inject a pending virtual hardware interrupt (Vector 0x30, Priority 2) */
     intr_ctrl->irq_is_pending = 1; /* vIRQ request enable bit */
