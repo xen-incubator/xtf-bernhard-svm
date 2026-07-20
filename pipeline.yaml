@@ -1,0 +1,4 @@
+copyright:
+  enablePRCheck: false
+  exclusions:
+  - "*"
