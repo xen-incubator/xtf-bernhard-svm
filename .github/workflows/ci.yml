@@ -1,6 +1,9 @@
 name: CI
 
-on: [push, pull_request]
+# Some organisations do not allow workflows to run on push events,
+# so we only run on pull requests.
+on:
+  - pull_request
 
 jobs:
   python:
