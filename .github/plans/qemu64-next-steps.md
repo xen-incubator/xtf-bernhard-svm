@@ -39,6 +39,18 @@ qemu-system-x86_64 \
   -device isa-debug-exit,iobase=0xf4,iosize=0x04
 ```
 
+The same baseline can also be run through the repo helper:
+
+```sh
+.github/scripts/qemu64-kvm-smoke.sh --tcg
+```
+
+On the KVM continuation host, use the default KVM mode:
+
+```sh
+.github/scripts/qemu64-kvm-smoke.sh
+```
+
 Expected console output:
 
 ```text
@@ -92,12 +104,7 @@ Before changing any nested-SVM test, verify:
 ```sh
 command -v qemu-system-x86_64
 test -r /dev/kvm && test -w /dev/kvm
-qemu-system-x86_64 -accel kvm -cpu host \
-  -kernel tests/example/test-qemu64-example \
-  -display none \
-  -serial stdio \
-  -no-reboot \
-  -device isa-debug-exit,iobase=0xf4,iosize=0x04
+.github/scripts/qemu64-kvm-smoke.sh
 ```
 
 Also verify that SVM is exposed to the guest before enabling nested-SVM tests.

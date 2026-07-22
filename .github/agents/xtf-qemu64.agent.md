@@ -24,12 +24,7 @@ direct QEMU boot path while preserving the existing Xen test workflow.
 2. Verify the baseline smoke path:
 
    ```sh
-   qemu-system-x86_64 \
-     -kernel tests/example/test-qemu64-example \
-     -display none \
-     -serial stdio \
-     -no-reboot \
-     -device isa-debug-exit,iobase=0xf4,iosize=0x04
+  .github/scripts/qemu64-kvm-smoke.sh --tcg
    ```
 
 3. For nested-SVM work, verify the host first:
@@ -37,12 +32,7 @@ direct QEMU boot path while preserving the existing Xen test workflow.
    ```sh
    command -v qemu-system-x86_64
    test -r /dev/kvm && test -w /dev/kvm
-   qemu-system-x86_64 -accel kvm -cpu host \
-     -kernel tests/example/test-qemu64-example \
-     -display none \
-     -serial stdio \
-     -no-reboot \
-     -device isa-debug-exit,iobase=0xf4,iosize=0x04
+   .github/scripts/qemu64-kvm-smoke.sh
    ```
 
 4. Make the smallest opt-in or runtime change needed.

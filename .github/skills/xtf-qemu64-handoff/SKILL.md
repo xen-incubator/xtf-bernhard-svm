@@ -47,6 +47,18 @@ tests for a KVM-capable AMD host.
 Use the example test to check that the direct QEMU path still works:
 
 ```sh
+.github/scripts/qemu64-kvm-smoke.sh --tcg
+```
+
+On a KVM-capable continuation host, prefer:
+
+```sh
+.github/scripts/qemu64-kvm-smoke.sh
+```
+
+The equivalent direct command is:
+
+```sh
 qemu-system-x86_64 \
   -kernel tests/example/test-qemu64-example \
   -display none \
@@ -77,12 +89,7 @@ Check at least:
 ```sh
 command -v qemu-system-x86_64
 test -r /dev/kvm && test -w /dev/kvm
-qemu-system-x86_64 -accel kvm -cpu host \
-  -kernel tests/example/test-qemu64-example \
-  -display none \
-  -serial stdio \
-  -no-reboot \
-  -device isa-debug-exit,iobase=0xf4,iosize=0x04
+.github/scripts/qemu64-kvm-smoke.sh
 ```
 
 Treat pure TCG as insufficient for nested-SVM semantics. If guest-visible SVM is
