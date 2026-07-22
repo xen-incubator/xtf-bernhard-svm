@@ -193,7 +193,7 @@ ninja-vars:
 	@printf 'global\t%s\t%s\n' HVM64_FORMAT '$(HVM64_FORMAT)'
 	@printf 'objects\t%s\t%s\n' perbits '$(obj-perbits)'
 	@printf 'objects\t%s\t%s\n' perenv '$(obj-perenv)'
-	@$(foreach env,$(ALL_ENVIRONMENTS), \
+	@$(foreach env,$(KNOWN_ENVIRONMENTS), \
 		printf 'env\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 			'$(env)' \
 			'$($(env)_guest)' \
@@ -206,18 +206,19 @@ ninja-vars:
 			'$(LDFLAGS_$(env))' \
 			'$(defcfg-$($(env)_guest))'; \
 	)
-	@$(foreach env,$(ALL_ENVIRONMENTS), \
+	@$(foreach env,$(KNOWN_ENVIRONMENTS), \
 		printf 'env_objects\t%s\t%s\n' \
 			'$(env)' \
 			'$(obj-$(env))'; \
 	)
 	@$(foreach key,$(REGISTERED_TESTS), \
-		printf 'test\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+		printf 'test\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 			'$(key)' \
 			'$(TEST_DIR_$(key))' \
 			'$(TEST_NAME_$(key))' \
 			'$(TEST_CATEGORY_$(key))' \
 			'$(TEST_ENVS_$(key))' \
+			'$(TEST_QEMU_ENVS_$(key))' \
 			'$(TEST_EXTRA_CFG_$(key))' \
 			'$(TEST_VARY_CFG_$(key))' \
 			'$(TEST_VCPUS_$(key))' \

@@ -25,6 +25,9 @@ void __noreturn arch_crash_hard(void);
 /* Get the domid using arch-specific means.  Returns -1 for not available. */
 int arch_get_domid(void);
 
+/* Shut down the test environment. */
+void __noreturn arch_shutdown(unsigned int reason);
+
 /* Single line summary of execution environment. */
 extern const char environment_description[];
 

@@ -49,6 +49,7 @@ class TestInfo:
     name: str
     category: str
     envs: list[str]
+    qemu_envs: list[str]
     extra_cfg: str
     vary_cfg: list[str]
     vcpus: str
@@ -154,6 +155,7 @@ def parse_manifest(path: str) -> tuple[
                     name,
                     category,
                     env_list,
+                    qemu_env_list,
                     extra_cfg,
                     vary_cfg,
                     vcpus,
@@ -166,6 +168,7 @@ def parse_manifest(path: str) -> tuple[
                         name=name,
                         category=category,
                         envs=split_words(env_list),
+                        qemu_envs=split_words(qemu_env_list),
                         extra_cfg=extra_cfg,
                         vary_cfg=split_words(vary_cfg),
                         vcpus=vcpus,
@@ -479,7 +482,7 @@ def build_ninja(
         )
         install_targets.append(install_info)
 
-        for env_name in test.envs:
+        for env_name in test.envs + test.qemu_envs:
             env = envs[env_name]
 
             dep_outputs: list[str] = []
@@ -556,6 +559,9 @@ def build_ninja(
                 {"outdir": os.path.dirname(install_bin)},
             )
             install_targets.append(install_bin)
+
+            if env_name not in test.envs:
+                continue
 
             # Emit the default xl cfg file for this test/environment pair.
             # In practice this is the generated runtime configuration derived

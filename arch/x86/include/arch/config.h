@@ -42,6 +42,16 @@
 
 #undef CONFIG_ENV_hvm64
 
+#elif defined(CONFIG_ENV_qemu64)
+
+#define CONFIG_HVM 1
+#define CONFIG_QEMU 1
+#define CONFIG_64BIT 1
+#define CONFIG_PAGING_LEVELS 4
+#define ENVIRONMENT_DESCRIPTION "QEMU 64bit (Long mode 4 levels)"
+
+#undef CONFIG_ENV_qemu64
+
 #elif defined(CONFIG_ENV_hvm32pae)
 
 #define CONFIG_HVM 1

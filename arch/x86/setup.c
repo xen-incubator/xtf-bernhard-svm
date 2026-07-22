@@ -1,6 +1,7 @@
 #include <xtf/lib.h>
 #include <xtf/hypercall.h>
 #include <xtf/extable.h>
+#include <xtf/framework.h>
 #include <xtf/report.h>
 #include <xtf/xenbus.h>
 
@@ -248,6 +249,28 @@ static void qemu_console_write(const char *buf, size_t len)
     rep_outsb(buf, len, 0x12);
 }
 
+static void serial_console_init(void)
+{
+    outb(0x00, 0x3f8 + 1);
+    outb(0x80, 0x3f8 + 3);
+    outb(0x01, 0x3f8 + 0);
+    outb(0x00, 0x3f8 + 1);
+    outb(0x03, 0x3f8 + 3);
+    outb(0xc7, 0x3f8 + 2);
+    outb(0x0b, 0x3f8 + 4);
+}
+
+static void serial_console_write(const char *buf, size_t len)
+{
+    for ( size_t i = 0; i < len; ++i )
+    {
+        while ( !(inb(0x3f8 + 5) & 0x20) )
+            ;
+
+        outb(buf[i], 0x3f8);
+    }
+}
+
 static void xen_console_write(const char *buf, size_t len)
 {
     hypercall_console_write(buf, len);
@@ -255,6 +278,20 @@ static void xen_console_write(const char *buf, size_t len)
 
 void arch_setup(void)
 {
+    if ( IS_DEFINED(CONFIG_QEMU) )
+    {
+        serial_console_init();
+        register_console_callback(serial_console_write);
+
+        collect_cpuid(cpuid_count);
+
+        sort_extable();
+
+        arch_init_traps();
+
+        return;
+    }
+
     if ( IS_DEFINED(CONFIG_HVM) && !pvh_start_info )
         register_console_callback(qemu_console_write);
 
@@ -279,6 +316,9 @@ void arch_setup(void)
 
 int arch_get_domid(void)
 {
+    if ( IS_DEFINED(CONFIG_QEMU) )
+        return -1;
+
     if ( IS_DEFINED(CONFIG_HVM) )
     {
         uint32_t eax, ebx, ecx, edx;
@@ -291,6 +331,16 @@ int arch_get_domid(void)
     }
 
     return -1;
+}
+
+void __noreturn arch_shutdown(unsigned int reason)
+{
+    if ( IS_DEFINED(CONFIG_QEMU) )
+        outl(reason, 0xf4);
+    else
+        hypercall_shutdown(reason);
+
+    arch_crash_hard();
 }
 
 /*

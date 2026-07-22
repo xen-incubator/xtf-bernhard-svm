@@ -32,6 +32,11 @@ void __weak __noreturn arch_crash_hard(void)
     unreachable();
 }
 
+void __weak __noreturn arch_shutdown(unsigned int reason)
+{
+    arch_crash_hard();
+}
+
 /*
  * Local variables:
  * mode: C

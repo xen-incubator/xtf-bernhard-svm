@@ -18,6 +18,12 @@ ifneq ($(filter-out $(ALL_ENVIRONMENTS),$(TEST-ENVS)),)
 $(error Unrecognised environments '$(filter-out $(ALL_ENVIRONMENTS),$(TEST-ENVS))')
 endif
 
+ifneq ($(filter-out $(QEMU_ENVIRONMENTS),$(QEMU-TEST-ENVS)),)
+$(error Unrecognised QEMU environments '$(filter-out $(QEMU_ENVIRONMENTS),$(QEMU-TEST-ENVS))')
+endif
+
+TEST-BIN-ENVS := $(TEST-ENVS) $(QEMU-TEST-ENVS)
+
 ifeq ($(CATEGORY),)
 $(error CATEGORY should not be empty)
 endif
@@ -37,7 +43,7 @@ TEST-CFGS := $(foreach env,$(TEST-ENVS),test-$(env)-$(NAME).cfg)
 endif
 
 .PHONY: build
-build: $(foreach env,$(TEST-ENVS),test-$(env)-$(NAME)) $(TEST-CFGS)
+build: $(foreach env,$(TEST-BIN-ENVS),test-$(env)-$(NAME)) $(TEST-CFGS)
 build: info.json
 
 info.json: $(ROOT)/build/mkinfo.py Makefile
@@ -79,6 +85,8 @@ test-$(1)-$(NAME): $$(DEPS-$(1)) $$(link-$(1))
 	rm -f $$(call root-path,$$@).tmp
 endif
 
+ifneq ($$(filter $(1),$$(TEST-ENVS)),)
+
 cfg-$(1) ?= $(defcfg-$($(1)_guest))
 
 cfg-default-deps := $(ROOT)/build/mkcfg.py $$(cfg-$(1)) $(TEST-EXTRA-CFG) Makefile
@@ -106,13 +114,24 @@ install-$(1).cfg: $(filter test-$(1)-%,$(TEST-CFGS))
 
 install-each-env: install-$(1) install-$(1).cfg
 
+else
+
+.PHONY: install-$(1)
+install-$(1): test-$(1)-$(NAME)
+	@$(INSTALL_DIR) $(DESTDIR)$(xtftestdir)/$(NAME)
+	$(INSTALL_PROGRAM) $$< $(DESTDIR)$(xtftestdir)/$(NAME)
+
+install-each-env: install-$(1)
+
+endif
+
 endef
-$(foreach env,$(TEST-ENVS),$(eval $(call PERENV_build,$(env))))
+$(foreach env,$(TEST-BIN-ENVS),$(eval $(call PERENV_build,$(env))))
 
 .PHONY: clean
 clean:
 	find $(ROOT) \( -name "*.o" -o -name "*.d" \) -delete
-	rm -f $(foreach env,$(TEST-ENVS),test-$(env)-$(NAME) test-$(env)-$(NAME)*.cfg)
+	rm -f $(foreach env,$(TEST-BIN-ENVS),test-$(env)-$(NAME) test-$(env)-$(NAME)*.cfg)
 
 .PHONY: %var
 %var:

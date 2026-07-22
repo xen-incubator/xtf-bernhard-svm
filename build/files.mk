@@ -40,6 +40,7 @@ obj-hvm += $(ROOT)/arch/x86/vmx.o
 obj-hvm += $(ROOT)/arch/x86/x86-tss.o
 
 $(foreach env,$(HVM_ENVIRONMENTS),$(eval obj-$(env) += $(obj-hvm)))
+$(foreach env,$(QEMU_ENVIRONMENTS),$(eval obj-$(env) += $(obj-hvm)))
 
 
 # PV specific objects
