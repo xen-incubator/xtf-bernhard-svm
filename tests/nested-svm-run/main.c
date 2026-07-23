@@ -135,7 +135,8 @@ void test_main(void)
     if ( vmcb12.rax != 1 ) /* L2 should have incremented %rax from 0 to 1 */
         return xtf_failure("unexpected L2 %%rax: 0x%lx\n", vmcb12.rax);
 
-    if ( !expect_xfail_l2_cli_hlt_with_l1_intr_intercept() )
+    if ( !IS_DEFINED(CONFIG_QEMU) &&
+         !expect_xfail_l2_cli_hlt_with_l1_intr_intercept() )
         return;
 
     xtf_success(NULL);
