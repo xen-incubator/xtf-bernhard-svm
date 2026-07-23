@@ -62,10 +62,20 @@ TESTS ?= $(wildcard $(ROOT)/tests/*)
 # Prefer Ninja when it is available, but keep the recursive make path as the
 # fallback and as an explicit override via USE_MAKE=1.
 NINJA_AVAILABLE := $(if $(shell command -v ninja 2>/dev/null),1,0)
-USE_MAKE ?= $(if $(NINJA_AVAILABLE),0,1)
-
 ACTIVE_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 NINJA_GOALS := ninja-vars ninja-file ninja-build ninja-install
+NINJA_MISSING_HINT := ninja not found; falling back to USE_MAKE=1. Install \
+	ninja with 'sudo apt install -y ninja-build' on Debian-based distros \
+	to reduce build times dramatically.
+
+USE_MAKE ?= $(if $(NINJA_AVAILABLE),0,1)
+ifeq ($(NINJA_AVAILABLE),0)
+ifneq ($(filter all install,$(ACTIVE_GOALS)),)
+override USE_MAKE := 1
+$(info $(NINJA_MISSING_HINT))
+endif
+endif
+
 METADATA_GOALS := $(NINJA_GOALS)
 COMMON_GOALS := $(NINJA_GOALS)
 
